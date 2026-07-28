@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LS Customs — Run Sheet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@font-face{font-family:'Rajdhani-fallback';src:local('Arial Narrow');}
+:root{
+  --bg:#0b0f0d;
+  --panel:#141a17;
+  --panel2:#1b2320;
+  --line:#2a3530;
+  --line-bright:#3a4a42;
+  --green:#33ff8c;
+  --green-dim:#1fae67;
+  --green-glow:rgba(51,255,140,.15);
+  --orange:#ff7a3d;
+  --red:#ff4d4d;
+  --text:#e9f3ec;
+  --muted:#7f9a8c;
+  --mono:'IBM Plex Mono','Consolas',monospace;
+  --disp:'Rajdhani','Arial Narrow',sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'Inter',Arial,sans-serif;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line-bright);border-radius:6px;}
+::-webkit-scrollbar-track{background:var(--panel);}
+#shell{display:flex;min-height:100vh;}
+#sidebar{
+  width:210px;flex-shrink:0;background:linear-gradient(180deg,#101613,#0b0f0d);
+  border-right:1px solid var(--line);padding:20px 0;display:flex;flex-direction:column;
+}
+.brand{padding:0 18px 20px 18px;border-bottom:1px solid var(--line);margin-bottom:10px;}
+.brand h1{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:1px;margin:0;color:var(--green);text-shadow:0 0 18px var(--green-glow);}
+.brand span{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;}
+.navbtn{
+  display:flex;align-items:center;gap:10px;padding:13px 18px;cursor:pointer;
+  border-left:3px solid transparent;color:var(--muted);font-family:var(--disp);
+  font-size:15px;letter-spacing:.5px;font-weight:600;text-transform:uppercase;
+  transition:all .12s;
+}
+.navbtn .num{font-family:var(--mono);font-size:11px;color:var(--line-bright);width:20px;}
+.navbtn:hover{background:var(--panel2);color:var(--text);}
+.navbtn.active{border-left:3px solid var(--green);background:var(--green-glow);color:var(--green);}
+.navbtn.active .num{color:var(--green);}
+#sidebar .footer{margin-top:auto;padding:14px 18px;font-size:10px;color:var(--line-bright);font-family:var(--mono);border-top:1px solid var(--line);}
+#main{flex:1;padding:28px 34px;overflow-y:auto;max-height:100vh;}
+h2.pagetitle{font-family:var(--disp);font-size:28px;letter-spacing:1px;margin:0 0 4px 0;color:var(--text);text-transform:uppercase;}
+p.subtitle{color:var(--muted);margin:0 0 24px 0;font-size:13px;}
+.topbar{display:flex;gap:14px;align-items:center;margin-bottom:22px;flex-wrap:wrap;}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.pill select,.pill input{background:transparent;border:none;color:var(--green);font-family:var(--mono);font-size:12px;outline:none;}
+.pill select option{background:var(--panel);color:var(--text);}
+.sync{margin-left:auto;font-size:11px;color:var(--line-bright);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-2{grid-template-columns:2fr 1fr;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+.stat .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+.stat .value{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--green);}
+.stat .value.warn{color:var(--orange);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 10px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--line);font-weight:600;}
+td{padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--mono);}
+tr:hover td{background:var(--panel2);}
+.itemname{font-family:'Inter',Arial,sans-serif;font-weight:500;}
+input.numin{width:70px;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-family:var(--mono);padding:5px 7px;border-radius:5px;}
+input.numin:focus{outline:none;border-color:var(--green);}
+.gauge{position:relative;width:130px;height:16px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;overflow:hidden;}
+.gauge-fill{height:100%;background:var(--green-dim);transition:width .3s;}
+.gauge-fill.low{background:repeating-linear-gradient(45deg,var(--orange),var(--orange) 6px,#5a2f1c 6px,#5a2f1c 12px);}
+.gauge-fill.crit{background:repeating-linear-gradient(45deg,var(--red),var(--red) 6px,#5a1c1c 6px,#5a1c1c 12px);}
+.pct{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:6px;}
+button{cursor:pointer;font-family:var(--disp);font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 18px;font-size:13px;transition:all .12s;}
+button:hover{border-color:var(--green);color:var(--green);}
+button.primary{background:var(--green);color:#06130c;border:none;}
+button.primary:hover{background:#5dffab;color:#06130c;box-shadow:0 0 16px var(--green-glow);}
+button.danger{border-color:var(--red);color:var(--red);background:transparent;}
+button.danger:hover{background:var(--red);color:#1a0505;}
+button.small{padding:5px 10px;font-size:11px;}
+button:disabled{opacity:.35;cursor:not-allowed;}
+.btnrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.section-label{font-family:var(--disp);text-transform:uppercase;letter-spacing:1px;font-size:14px;color:var(--green);margin:22px 0 10px 0;border-bottom:1px solid var(--line);padding-bottom:6px;}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-family:var(--mono);text-transform:uppercase;}
+.tag.direct{background:rgba(51,255,140,.12);color:var(--green);}
+.tag.craft{background:rgba(255,122,61,.12);color:var(--orange);}
+.recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:10px 0;}
+.ingredient{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:12px;display:flex;justify-content:space-between;}
+.ingredient.short{border-color:var(--orange);color:var(--orange);}
+.empty{color:var(--muted);font-size:13px;padding:20px;text-align:center;border:1px dashed var(--line);border-radius:8px;}
+.log-entry{border-left:2px solid var(--green-dim);padding:10px 14px;margin-bottom:8px;background:var(--panel2);border-radius:0 6px 6px 0;}
+.log-entry.craft{border-left-color:var(--orange);}
+.log-meta{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:4px;}
+.employee-chip{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 8px 6px 14px;margin:4px 6px 4px 0;font-size:13px;}
+.employee-chip button{padding:2px 8px;font-size:11px;border-radius:50%;}
+.note{font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:10px 0;}
+</style>
+</head>
+<body>
+<div id="shell">
+  <nav id="sidebar">
+    <div class="brand"><h1>LS CUSTOMS</h1><span>Run Sheet System</span></div>
+    <div id="navlist"></div>
+    <div class="footer">4 BAYS · SHARED LIVE DATA<br>ALL EMPLOYEES SEE UPDATES</div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<!-- Firebase SDK (compat build — simplest for plain script tags, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+
+<script>
+/* =====================================================================
+   FIREBASE SETUP — do this once before hosting the site:
+   1. Go to https://console.firebase.google.com → "Add project" → give it
+      any name (e.g. "ls-customs-run-sheet") → follow the prompts (you can
+      skip Google Analytics).
+   2. In the project, click the "</>" (Web) icon to register a web app →
+      give it a nickname → it will show you a firebaseConfig object.
+   3. Copy that object and paste it in place of the placeholder below.
+   4. In the left sidebar go to Build → Realtime Database → Create Database
+      → start in TEST MODE (fine for an internal shop tool; you can lock
+      it down later with Firebase's rules if you want).
+   5. Save this file and upload it to any static host (GitHub Pages,
+      Netlify, Vercel — drag-and-drop the file in). That URL is now a
+      real, independent website your employees can open — no Claude
+      account needed, and everyone sees the same live data instantly.
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDWqqWJkyzRcogXYOQRfT6Q5oRsCYPhhqA",
+  authDomain: "ls-customs-56115.firebaseapp.com",
+  databaseURL: "https://ls-customs-56115-default-rtdb.firebaseio.com",
+  projectId: "ls-customs-56115",
+  storageBucket: "ls-customs-56115.firebasestorage.app",
+  messagingSenderId: "891644074234",
+  appId: "1:891644074234:web:516947a30325741c7d5143"
+};
+
+/* ===================== DATA MODEL ===================== */
+const BAY_ITEMS = [
+  {id:'repair_kits', name:'Repair Kits', target:100, type:'direct', price:200.5, retail:500},
+  {id:'cosmetic_parts', name:'Cosmetic Parts', target:100, type:'craft', recipe:'cosmetic', price:295.1, retail:0},
+  {id:'wheel_rims', name:'Custom Wheel Rims', target:35, type:'direct', price:59, retail:100},
+  {id:'spray_cans', name:'Vehicle Spray Cans', target:85, type:'direct', price:33.5, retail:33},
+  {id:'underglow', name:'Underglow LEDs', target:35, type:'direct', price:118.5, retail:300},
+  {id:'xenon', name:'Xenon Headlights', target:35, type:'direct', price:138, retail:250},
+  {id:'vehicle_extras', name:'Vehicle Extras', target:5, type:'direct', price:470, retail:990},
+  {id:'performance_parts', name:'Performance Parts', target:5, type:'craft', recipe:'performance', price:939, retail:0},
+  {id:'supercharger', name:'Supercharger Turbo', target:5, type:'direct', price:712.5, retail:1500},
+  {id:'drift_tires', name:'Drift Smoke Tires', target:5, type:'direct', price:461, retail:820},
+];
+
+const MATERIALS = [
+  {id:'air_filter', name:'Air Filter', price:24, retail:51},
+  {id:'brake_replacement', name:'Brake Replacement', price:148, retail:250},
+  {id:'brake_fluid', name:'Brake Fluid', price:15.5, retail:33},
+  {id:'drive_belt', name:'Drive Belt', price:86.5, retail:183},
+  {id:'spark_plugs', name:'Spark Plugs', price:21.5, retail:46},
+  {id:'drivetrain_fluid', name:'Drivetrain Fluid', price:12, retail:26},
+  {id:'suspension_service_part', name:'Suspension Service Part', price:190, retail:400},
+  {id:'brake_pads', name:'Brake Pads', price:143, retail:250},
+  {id:'drive_train_pump', name:'Drive Train Pump', price:124.5, retail:263},
+  {id:'engine_oil', name:'Engine Oil', price:15.5, retail:33},
+  {id:'mechanic_toolbox', name:'Mechanic Toolbox', price:208, retail:320},
+  {id:'customized_plates', name:'Customized Plates', price:46, retail:110},
+  {id:'vehicle_exhaust', name:'Vehicle Exhaust', price:61.5, retail:120},
+  {id:'exterior_cosmetics', name:'Exterior Cosmetics', price:35.5, retail:70},
+  {id:'custom_vehicle_horn', name:'Custom Vehicle Horn', price:11.5, retail:20},
+  {id:'internal_cosmetics', name:'Internal Cosmetics', price:23.5, retail:60},
+  {id:'livery_roll', name:'Livery Roll', price:35.5, retail:75},
+  {id:'vehicle_front_bumper', name:'Vehicle Front Bumper', price:87.5, retail:150},
+  {id:'vehicle_grille', name:'Vehicle Grille', price:64, retail:125},
+  {id:'vehicle_rear_bumper', name:'Vehicle Rear Bumper', price:95, retail:160},
+  {id:'roll_cage', name:'Roll Cage', price:177.5, retail:250},
+  {id:'vehicle_roof', name:'Vehicle Roof', price:68.5, retail:130},
+  {id:'vehicle_skirts', name:'Vehicle Skirts', price:47.5, retail:90},
+  {id:'vehicle_spoiler', name:'Vehicle Spoiler', price:47.5, retail:90},
+  {id:'window_tint_kit', name:'Window Tint Kit', price:65.5, retail:138},
+  {id:'unbuilt_engine_block', name:'Unbuilt Engine Block', price:0, retail:0},
+  {id:'aluminium', name:'Aluminium', price:0, retail:0},
+  {id:'raw_copper', name:'Raw Copper', price:0, retail:0},
+  {id:'raw_iron', name:'Raw Iron', price:0, retail:0},
+  {id:'plastic', name:'Plastic', price:0, retail:0},
+  {id:'rubber', name:'Rubber', price:0, retail:0},
+];
+
+const RECIPES = {
+  cosmetic:{
+    output:{id:'cosmetic_parts', qty:5}, toolboxReturn:1,
+    ingredients:['brake_replacement','customized_plates','vehicle_exhaust','exterior_cosmetics','custom_vehicle_horn','internal_cosmetics','livery_roll','vehicle_front_bumper','vehicle_grille','vehicle_rear_bumper','roll_cage','vehicle_roof','vehicle_skirts','drift_tires','vehicle_spoiler','window_tint_kit'].map(id=>({id,qty:1}))
+  },
+  performance:{
+    output:{id:'performance_parts', qty:3}, toolboxReturn:1,
+    ingredients:['air_filter','brake_replacement','brake_fluid','drive_belt','spark_plugs','drivetrain_fluid','suspension_service_part','brake_pads','drive_train_pump','engine_oil','unbuilt_engine_block'].map(id=>({id,qty:1}))
+  },
+  engine_block:{
+    output:{id:'unbuilt_engine_block', qty:1}, toolboxReturn:1,
+    ingredients:[{id:'aluminium',qty:50},{id:'raw_copper',qty:5},{id:'raw_iron',qty:15},{id:'plastic',qty:10},{id:'rubber',qty:10}]
+  }
+};
+// every recipe also consumes 1 mechanic_toolbox (returned at end, net zero if you keep one cycling)
+Object.values(RECIPES).forEach(r=>r.ingredients.push({id:'mechanic_toolbox',qty:1}));
+
+const ALL_IDS = [...BAY_ITEMS.map(i=>i.id), ...MATERIALS.map(m=>m.id)];
+function nameOf(id){
+  const b=BAY_ITEMS.find(i=>i.id===id); if(b) return b.name;
+  const m=MATERIALS.find(i=>i.id===id); if(m) return m.name;
+  return id;
+}
+function defaultPrice(id){
+  const b=BAY_ITEMS.find(i=>i.id===id); if(b) return b.price;
+  const m=MATERIALS.find(i=>i.id===id); if(m) return m.price;
+  return 0;
+}
+function defaultRetail(id){
+  const b=BAY_ITEMS.find(i=>i.id===id); if(b) return b.retail||0;
+  const m=MATERIALS.find(i=>i.id===id); if(m) return m.retail||0;
+  return 0;
+}
+const BAY_COUNT = 4;
+function getTarget(id){ return state.inventory[id].target; } // per-bay target, editable
+function getFullTarget(id){ return getTarget(id)*BAY_COUNT; } // shop-wide total across 4 bays
+function distributeAcrossBays(total){
+  const base = Math.floor(total/BAY_COUNT), rem = total%BAY_COUNT;
+  return Array.from({length:BAY_COUNT}, (_,i)=> base + (i<rem?1:0));
+}
+
+/* ===================== STATE ===================== */
+let state = {
+  inventory: {},      // id -> {qty, importPrice, retailPrice}
+  employees: [],
+  runHistory: [],      // {ts, employee, type, details, cost}
+  truckCapacity: 210,
+  currentEmployee: '',
+  pendingRuns: null,
+  numRunsToGenerate: 1
+};
+let activeTab = 'dashboard';
+let dirtyFlag = false; // true while user has a focused input, to avoid clobbering during poll
+
+function freshInventory(){
+  const inv = {};
+  ALL_IDS.forEach(id=>{
+    inv[id] = {qty:0, importPrice: defaultPrice(id), retailPrice: defaultRetail(id)};
+  });
+  BAY_ITEMS.forEach(i=>{ inv[i.id].bays = [0,0,0,0]; inv[i.id].target = i.target; });
+  inv['mechanic_toolbox'].qty = 1;
+  return inv;
+}
+function ensureBays(){
+  // safety: if inventory was created before bay-tracking / editable targets existed, backfill
+  BAY_ITEMS.forEach(i=>{
+    if(!state.inventory[i.id]) return;
+    if(!Array.isArray(state.inventory[i.id].bays)){
+      state.inventory[i.id].bays = distributeAcrossBays(state.inventory[i.id].qty||0);
+    }
+    if(typeof state.inventory[i.id].target !== 'number'){
+      state.inventory[i.id].target = i.target;
+    }
+  });
+  // retail price is fixed from the shop's price sheet, not employee-editable — always keep it synced to code defaults
+  ALL_IDS.forEach(id=>{
+    if(state.inventory[id]) state.inventory[id].retailPrice = defaultRetail(id);
+  });
+}
+
+/* ===================== STORAGE (FIREBASE) ===================== */
+const DEFAULT_EMPLOYEES = ['!Mark!','Amara Thorne','Andrew Reklaw','Antonio "Tony" Deluca','Chase','Cj Moi','Clay Moor','Desmond Doss','Dixon Herise','Dylan Jammeson','Mallory','Sabal Tillards','Tara Blaine','Ty'];
+let db, dbReady = false;
+
+function initFirebase(){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    dbReady = true;
+  }catch(e){
+    console.error('Firebase init failed', e);
+    document.getElementById('main').innerHTML = `<div class="empty">Firebase isn't configured yet. Open this file, find the <b>firebaseConfig</b> block near the top of the script, and paste in your Firebase project's config. See the setup notes in the comment above it.</div>`;
+    throw e;
+  }
+}
+
+function isTyping(){
+  return document.activeElement && (document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT');
+}
+
+async function loadAll(){
+  return new Promise(resolve=>{
+    let pending = 4;
+    const done = ()=>{ pending--; if(pending<=0) resolve(); };
+
+    db.ref('ls_inventory').once('value').then(snap=>{
+      state.inventory = snap.val() || freshInventory();
+      ensureBays();
+      if(!snap.val()) saveInventory();
+      done();
+    });
+    db.ref('ls_employees').once('value').then(snap=>{
+      state.employees = snap.val() || DEFAULT_EMPLOYEES.slice();
+      if(!snap.val()) saveEmployees();
+      done();
+    });
+    db.ref('ls_run_history').once('value').then(snap=>{
+      state.runHistory = snap.val() || [];
+      done();
+    });
+    db.ref('ls_truck_capacity').once('value').then(snap=>{
+      state.truckCapacity = snap.val() || 210;
+      done();
+    });
+  });
+}
+
+function attachLiveListeners(){
+  // Firebase pushes changes instantly — no polling needed. Skip re-render while someone is mid-edit.
+  db.ref('ls_inventory').on('value', snap=>{
+    if(isTyping()) return;
+    state.inventory = snap.val() || freshInventory();
+    ensureBays();
+    render();
+  });
+  db.ref('ls_employees').on('value', snap=>{
+    if(isTyping()) return;
+    state.employees = snap.val() || DEFAULT_EMPLOYEES.slice();
+    render();
+  });
+  db.ref('ls_run_history').on('value', snap=>{
+    if(isTyping()) return;
+    state.runHistory = snap.val() || [];
+    render();
+  });
+  db.ref('ls_truck_capacity').on('value', snap=>{
+    if(isTyping()) return;
+    state.truckCapacity = snap.val() || 210;
+    render();
+  });
+}
+
+async function saveInventory(){ try{ await db.ref('ls_inventory').set(state.inventory); }catch(e){console.error(e);} }
+async function saveEmployees(){ try{ await db.ref('ls_employees').set(state.employees); }catch(e){console.error(e);} }
+async function saveRunHistory(){ try{ await db.ref('ls_run_history').set(state.runHistory); }catch(e){console.error(e);} }
+async function saveTruckCapacity(){ try{ await db.ref('ls_truck_capacity').set(state.truckCapacity); }catch(e){console.error(e);} }
+
+/* ===================== HELPERS ===================== */
+function pct(qty,target){ return target>0 ? Math.min(100, Math.round((qty/target)*100)) : 100; }
+function money(n){ return '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+function gaugeClass(p){ return p<30?'crit':(p<70?'low':''); }
+
+function craftsPossible(recipeKey){
+  const r = RECIPES[recipeKey];
+  let max = Infinity;
+  r.ingredients.forEach(ing=>{
+    const have = state.inventory[ing.id]?.qty || 0;
+    max = Math.min(max, Math.floor(have/ing.qty));
+  });
+  return max===Infinity?0:max;
+}
+
+/* ===================== RENDER: NAV ===================== */
+const TABS = [
+  {id:'dashboard', label:'Bay Stock', num:'01'},
+  {id:'run', label:'Truck Run', num:'02'},
+  {id:'crafting', label:'Crafting', num:'03'},
+  {id:'pricing', label:'Pricing', num:'04'},
+  {id:'history', label:'Run History', num:'05'},
+  {id:'employees', label:'Employees', num:'06'},
+];
+function renderNav(){
+  document.getElementById('navlist').innerHTML = TABS.map(t=>`
+    <div class="navbtn ${activeTab===t.id?'active':''}" data-tab="${t.id}">
+      <span class="num">${t.num}</span>${t.label}
+    </div>`).join('');
+}
+
+/* ===================== RENDER: DASHBOARD ===================== */
+function renderDashboard(){
+  const totalTarget = BAY_ITEMS.reduce((s,i)=>s+getFullTarget(i.id),0);
+  const totalHave = BAY_ITEMS.reduce((s,i)=>s+Math.min(state.inventory[i.id].qty,getFullTarget(i.id)),0);
+  const completion = Math.round((totalHave/totalTarget)*100);
+  const fullStockCost = BAY_ITEMS.reduce((s,i)=>s+getFullTarget(i.id)*state.inventory[i.id].importPrice,0);
+  const currentValue = BAY_ITEMS.reduce((s,i)=>s+state.inventory[i.id].qty*state.inventory[i.id].importPrice,0);
+
+  return `
+  <div class="topbar">
+    <div class="pill">👤 <select id="empSelect">${empOptions()}</select></div>
+    <div class="sync"><span class="dot"></span>LIVE — SYNCED ACROSS ALL EMPLOYEES</div>
+  </div>
+  <h2 class="pagetitle">Bay Stock</h2>
+  <p class="subtitle">Live inventory across all 4 bays. Update counts as stock is pulled or delivered.</p>
+  <div class="grid grid-4">
+    <div class="stat"><div class="label">Shop Completion</div><div class="value ${completion<50?'warn':''}">${completion}%</div></div>
+    <div class="stat"><div class="label">Cost to Full Stock</div><div class="value">${money(Math.max(0,fullStockCost-currentValue))}</div></div>
+    <div class="stat"><div class="label">Current Inventory Value</div><div class="value">${money(currentValue)}</div></div>
+    <div class="stat"><div class="label">Truck Capacity</div><div class="value">${state.truckCapacity}</div></div>
+  </div>
+  <div class="section-label">Bay Items — Stock By Bay</div>
+  <p class="subtitle" style="margin-top:-4px;">Target below is per bay — each bay carries the same target, so the shop total is 4x that number.</p>
+  <table>
+    <thead><tr><th>Item</th><th>Bay 1</th><th>Bay 2</th><th>Bay 3</th><th>Bay 4</th><th>Total</th><th>Target / Bay</th><th>Shop Total</th><th>Stock Level</th></tr></thead>
+    <tbody>
+    ${BAY_ITEMS.map(i=>{
+      const bays = state.inventory[i.id].bays;
+      const total = bays.reduce((a,b)=>a+b,0);
+      const target = getTarget(i.id);
+      const shopTotal = getFullTarget(i.id);
+      const p = pct(total,shopTotal);
+      return `<tr>
+        <td class="itemname">${i.name} <span class="tag ${i.type}" style="margin-left:6px;">${i.type==='craft'?'Crafted':'Direct'}</span></td>
+        ${bays.map((q,n)=>`<td><input class="numin" style="width:52px" type="number" min="0" data-bay="${i.id}" data-baynum="${n}" value="${q}"><span class="pct" style="margin-left:4px;">/${target}</span></td>`).join('')}
+        <td><b>${total}</b></td>
+        <td><input class="numin" style="width:60px" type="number" min="0" data-target="${i.id}" value="${target}"></td>
+        <td>${shopTotal}</td>
+        <td><div class="gauge"><div class="gauge-fill ${gaugeClass(p)}" style="width:${p}%"></div></div><span class="pct">${p}%</span></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>
+  <div class="btnrow">
+    <div class="note" style="margin:0;">"Target / Bay" is editable per item — change it there and every bay's target and the shop total update together.</div>
+  </div>
+  <div class="btnrow">
+    <button class="danger" id="resetInv">Reset All Stock</button>
+  </div>
+  `;
+}
+function empOptions(){
+  return `<option value="">Select employee…</option>` + state.employees.map(e=>`<option ${state.currentEmployee===e?'selected':''}>${e}</option>`).join('');
+}
+
+/* ===================== RENDER: TRUCK RUN ===================== */
+function computeShoppingList(inv){
+  inv = inv || state.inventory;
+  const list = {};
+  function add(id,qty,urgency){
+    if(qty<=0) return;
+    if(!list[id]) list[id]={qty:0, urgency};
+    list[id].qty += qty;
+    list[id].urgency = Math.min(list[id].urgency, urgency);
+  }
+  BAY_ITEMS.forEach(i=>{
+    const have = inv[i.id].qty;
+    const shopTarget = getFullTarget(i.id);
+    const deficit = Math.max(0, shopTarget-have);
+    const urgency = shopTarget>0 ? have/shopTarget : 1;
+    if(deficit<=0) return;
+    if(i.type==='direct'){
+      add(i.id, deficit, urgency);
+    } else if(i.id==='cosmetic_parts'){
+      const craftsNeeded = Math.ceil(deficit/RECIPES.cosmetic.output.qty);
+      RECIPES.cosmetic.ingredients.forEach(ing=>{
+        if(ing.id==='mechanic_toolbox') return;
+        const needQty = craftsNeeded*ing.qty;
+        const onHand = inv[ing.id].qty;
+        add(ing.id, Math.max(0,needQty-onHand), urgency);
+      });
+    } else if(i.id==='performance_parts'){
+      const craftsNeeded = Math.ceil(deficit/RECIPES.performance.output.qty);
+      RECIPES.performance.ingredients.forEach(ing=>{
+        if(ing.id==='mechanic_toolbox') return;
+        if(ing.id==='unbuilt_engine_block'){
+          const engineNeeded = craftsNeeded*ing.qty;
+          const engineOnHand = inv['unbuilt_engine_block'].qty;
+          const engineShort = Math.max(0,engineNeeded-engineOnHand);
+          RECIPES.engine_block.ingredients.forEach(rawIng=>{
+            if(rawIng.id==='mechanic_toolbox') return;
+            const needQty = engineShort*rawIng.qty;
+            const onHand = inv[rawIng.id].qty;
+            add(rawIng.id, Math.max(0,needQty-onHand), urgency);
+          });
+          return;
+        }
+        const needQty = craftsNeeded*ing.qty;
+        const onHand = inv[ing.id].qty;
+        add(ing.id, Math.max(0,needQty-onHand), urgency);
+      });
+    }
+  });
+  return list;
+}
+
+function generateRun(numRuns){
+  numRuns = Math.min(3, Math.max(1, numRuns||1));
+  // deep-copy inventory so we can simulate each successive truck load without touching real stock
+  const virtualInv = {};
+  Object.keys(state.inventory).forEach(id=>{ virtualInv[id] = {...state.inventory[id]}; });
+
+  const runs = [];
+  for(let n=0; n<numRuns; n++){
+    const list = computeShoppingList(virtualInv);
+    const entries = Object.entries(list).map(([id,v])=>({id, name:nameOf(id), needed:v.qty, urgency:v.urgency, price:state.inventory[id].importPrice}));
+    if(entries.length===0) break; // fully stocked, no more runs needed
+    entries.sort((a,b)=>a.urgency-b.urgency);
+    let remaining = state.truckCapacity;
+    const load = [];
+    entries.forEach(e=>{
+      if(remaining<=0) return;
+      const qty = Math.min(e.needed, remaining);
+      if(qty>0){ load.push({...e, loaded:qty}); remaining -= qty; }
+    });
+    if(load.length===0) break;
+    load.forEach(e=>{ virtualInv[e.id].qty += e.loaded; });
+    runs.push({ load, totalUnits: state.truckCapacity-remaining, cost: load.reduce((s,e)=>s+e.loaded*e.price,0), fullListTotalNeeded: entries.reduce((s,e)=>s+e.needed,0) });
+  }
+  state.pendingRuns = runs;
+}
+
+async function completeRuns(){
+  if(!state.pendingRuns || state.pendingRuns.length===0) return;
+  if(!state.currentEmployee){ alert('Select an employee first (top of Bay Stock or Truck Run tab).'); return; }
+  state.pendingRuns.forEach((r,idx)=>{
+    r.load.forEach(e=>{
+      const inv = state.inventory[e.id];
+      inv.qty += e.loaded;
+      if(inv.bays){
+        const add = distributeAcrossBays(e.loaded);
+        inv.bays = inv.bays.map((b,n)=>b+add[n]);
+      }
+    });
+    state.runHistory.unshift({
+      ts: Date.now(), employee: state.currentEmployee, type:'Truck Run',
+      details: (state.pendingRuns.length>1?`[Run ${idx+1}/${state.pendingRuns.length}] `:'')+r.load.map(e=>`${e.loaded}x ${e.name}`).join(', '),
+      cost: r.cost
+    });
+  });
+  state.pendingRuns = null;
+  await saveInventory(); await saveRunHistory();
+  render();
+}
+
+function renderRun(){
+  const list = computeShoppingList();
+  const totalNeededUnits = Object.values(list).reduce((s,v)=>s+v.qty,0);
+  const numRuns = state.numRunsToGenerate || 1;
+  return `
+  <h2 class="pagetitle">Truck Run</h2>
+  <p class="subtitle">Auto-fills the truck with the most depleted items first, up to capacity.</p>
+  <div class="topbar">
+    <div class="pill">👤 <select id="empSelect">${empOptions()}</select></div>
+    <div class="pill">🚚 Capacity <input type="number" id="capInput" class="numin" style="width:70px" value="${state.truckCapacity}"></div>
+    <div class="pill">Total units needed to full stock: <b style="color:var(--green)">${totalNeededUnits}</b></div>
+  </div>
+  <div class="btnrow" style="align-items:center;">
+    <div class="pill">🔢 Runs to generate
+      <select id="numRunsSelect">
+        <option value="1" ${numRuns===1?'selected':''}>1</option>
+        <option value="2" ${numRuns===2?'selected':''}>2</option>
+        <option value="3" ${numRuns===3?'selected':''}>3</option>
+      </select>
+    </div>
+    <button class="primary" id="genRun">Generate Run${numRuns>1?'s':''}</button>
+    ${state.pendingRuns && state.pendingRuns.length ? `<button class="primary" id="completeRun">Mark ${state.pendingRuns.length>1?'All':''} Complete</button><button class="danger" id="cancelRun">Cancel</button>` : ''}
+  </div>
+  ${state.pendingRuns && state.pendingRuns.length ? renderPendingRuns() : `<div class="empty">No run generated yet. Pick how many truck loads (1–3) and click "Generate".</div>`}
+  `;
+}
+function renderPendingRuns(){
+  const runs = state.pendingRuns;
+  const grandCost = runs.reduce((s,r)=>s+r.cost,0);
+  return runs.map((r,idx)=>`
+    <div class="section-label">${runs.length>1?`Truck Load #${idx+1}`:'Generated Load'} (${r.totalUnits} / ${state.truckCapacity} units)</div>
+    <table>
+      <thead><tr><th>Item</th><th>Qty Loaded</th><th>Unit Cost</th><th>Line Cost</th></tr></thead>
+      <tbody>
+      ${r.load.map(e=>`<tr><td class="itemname">${e.name}</td><td>${e.loaded}</td><td>${money(e.price)}</td><td>${money(e.loaded*e.price)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    ${r.fullListTotalNeeded > r.totalUnits && idx===runs.length-1 ? `<div class="note">⚠ Still ${r.fullListTotalNeeded-r.totalUnits} more units needed after these run(s) — generate again once these are done.</div>` : ''}
+  `).join('') + `
+  <div class="stat" style="margin-top:14px;max-width:240px;"><div class="label">Total Cost${runs.length>1?' (All Loads)':''}</div><div class="value">${money(grandCost)}</div></div>
+  <div class="note">When marked complete, direct-buy items are split evenly across the 4 bays automatically — adjust the per-bay numbers on Bay Stock afterward if you actually loaded them unevenly.</div>
+  `;
+}
+
+/* ===================== RENDER: CRAFTING ===================== */
+function renderRecipe(key,title){
+  const r = RECIPES[key];
+  const possible = craftsPossible(key);
+  return `
+  <div class="card" style="margin-bottom:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-family:var(--disp);font-size:18px;color:var(--green);text-transform:uppercase;">${title}</div>
+        <div style="font-size:12px;color:var(--muted);">Yields ${r.output.qty}x ${nameOf(r.output.id)} + 1x Mechanic Toolbox back</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted);">Can craft now</div>
+        <div style="font-family:var(--mono);font-size:22px;color:${possible>0?'var(--green)':'var(--red)'}">${possible}</div>
+      </div>
+    </div>
+    <div class="recipe-grid">
+    ${r.ingredients.map(ing=>{
+      const have = state.inventory[ing.id].qty;
+      const short = have<ing.qty;
+      return `<div class="ingredient ${short?'short':''}"><span>${nameOf(ing.id)}</span><span>${have}/${ing.qty}</span></div>`;
+    }).join('')}
+    </div>
+    <div class="btnrow">
+      <input type="number" min="1" value="1" class="numin" id="qty_${key}" style="width:60px">
+      <button class="primary" data-craft="${key}">Craft</button>
+    </div>
+  </div>`;
+}
+const COSMETIC_STASH_IDS = RECIPES.cosmetic.ingredients
+  .filter(ing=>ing.id!=='mechanic_toolbox' && !BAY_ITEMS.some(b=>b.id===ing.id))
+  .map(ing=>ing.id);
+const PERFORMANCE_STASH_IDS = [
+  ...RECIPES.performance.ingredients.filter(ing=>ing.id!=='mechanic_toolbox' && ing.id!=='unbuilt_engine_block' && !BAY_ITEMS.some(b=>b.id===ing.id)).map(ing=>ing.id),
+  'unbuilt_engine_block',
+  ...RECIPES.engine_block.ingredients.filter(ing=>ing.id!=='mechanic_toolbox').map(ing=>ing.id)
+];
+
+function renderStashTable(title, ids){
+  return `
+  <div class="section-label">${title}</div>
+  <table>
+    <thead><tr><th>Material</th><th>Stash Qty</th></tr></thead>
+    <tbody>${ids.map(id=>`<tr><td class="itemname">${nameOf(id)}</td><td><input class="numin" style="width:80px" type="number" min="0" data-material="${id}" value="${state.inventory[id].qty}"></td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function renderCrafting(){
+  return `
+  <div class="topbar">
+    <div class="pill">👤 <select id="empSelect">${empOptions()}</select></div>
+  </div>
+  <h2 class="pagetitle">Crafting</h2>
+  <p class="subtitle">Craft cosmetic parts, performance parts, and unbuilt engine blocks from materials on hand.</p>
+  ${renderRecipe('cosmetic','Cosmetic Parts')}
+  ${renderRecipe('performance','Performance Parts')}
+  ${renderRecipe('engine_block','Unbuilt Engine Block')}
+  <p class="subtitle" style="margin-top:6px;">These stashes are in the back — update counts here whenever material stock changes. The Truck Run generator reads straight from these counts, so it only orders what's actually short.</p>
+  ${renderStashTable('Cosmetic Part Materials Stash', COSMETIC_STASH_IDS)}
+  ${renderStashTable('Performance Part Materials Stash', PERFORMANCE_STASH_IDS)}
+  <div class="section-label">Mechanic Toolbox</div>
+  <table>
+    <thead><tr><th>Item</th><th>Qty</th></tr></thead>
+    <tbody><tr><td class="itemname">Mechanic Toolbox</td><td><input class="numin" style="width:80px" type="number" min="0" data-material="mechanic_toolbox" value="${state.inventory['mechanic_toolbox'].qty}"></td></tr></tbody>
+  </table>
+  <div class="note">Toolbox is consumed and returned by every craft — one toolbox cycles through repeatedly. Only top it up manually if it ever hits 0.</div>
+  `;
+}
+async function doCraft(key){
+  if(!state.currentEmployee){ alert('Select an employee first.'); return; }
+  const qtyInput = document.getElementById('qty_'+key);
+  const times = Math.max(1, parseInt(qtyInput.value)||1);
+  const r = RECIPES[key];
+  for(const ing of r.ingredients){
+    if(state.inventory[ing.id].qty < ing.qty*times){
+      alert(`Not enough ${nameOf(ing.id)}. Need ${ing.qty*times}, have ${state.inventory[ing.id].qty}.`);
+      return;
+    }
+  }
+  r.ingredients.forEach(ing=>{ state.inventory[ing.id].qty -= ing.qty*times; });
+  state.inventory[r.output.id].qty += r.output.qty*times;
+  state.inventory['mechanic_toolbox'].qty += r.toolboxReturn*times;
+  state.runHistory.unshift({
+    ts: Date.now(), employee: state.currentEmployee, type:'Craft',
+    details: `${times}x craft → ${r.output.qty*times}x ${nameOf(r.output.id)} (+${r.toolboxReturn*times} toolbox)`,
+    cost: 0
+  });
+  await saveInventory(); await saveRunHistory();
+  render();
+}
+
+/* ===================== RENDER: PRICING ===================== */
+function renderPricing(){
+  function row(id,name){
+    const inv = state.inventory[id];
+    const margin = inv.retailPrice - inv.importPrice;
+    return `<tr>
+      <td class="itemname">${name}</td>
+      <td><input class="numin" type="number" step="0.1" data-import="${id}" value="${inv.importPrice}"></td>
+      <td>${money(inv.retailPrice)}</td>
+      <td style="color:${margin>0?'var(--green)':(margin<0?'var(--red)':'var(--muted)')}">${inv.retailPrice?money(margin):'—'}</td>
+    </tr>`;
+  }
+  const cosmeticCost = RECIPES.cosmetic.ingredients.filter(i=>i.id!=='mechanic_toolbox').reduce((s,i)=>s+i.qty*state.inventory[i.id].importPrice,0)/RECIPES.cosmetic.output.qty;
+  const engineCost = RECIPES.engine_block.ingredients.filter(i=>i.id!=='mechanic_toolbox').reduce((s,i)=>s+i.qty*state.inventory[i.id].importPrice,0);
+  const perfCost = (RECIPES.performance.ingredients.filter(i=>i.id!=='mechanic_toolbox'&&i.id!=='unbuilt_engine_block').reduce((s,i)=>s+i.qty*state.inventory[i.id].importPrice,0) + engineCost)/RECIPES.performance.output.qty;
+  return `
+  <h2 class="pagetitle">Pricing</h2>
+  <p class="subtitle">Import cost per unit is editable — retail sale price is fixed from your shop's price sheet.</p>
+  <div class="grid grid-4" style="margin-bottom:8px;">
+    <div class="stat"><div class="label">Cosmetic Part / unit (crafted)</div><div class="value">${money(cosmeticCost)}</div></div>
+    <div class="stat"><div class="label">Performance Part / unit (crafted)</div><div class="value">${money(perfCost)}</div></div>
+    <div class="stat"><div class="label">Unbuilt Engine Block / unit</div><div class="value">${money(engineCost)}</div></div>
+    <div class="stat"><div class="label">Truck Capacity</div><div class="value">${state.truckCapacity}</div></div>
+  </div>
+  <div class="note">Engine block / raw ore prices (aluminium, copper, iron, plastic, rubber) default to $0 since they weren't visible in your sheet — set them below for accurate crafted-part costs.</div>
+  <div class="section-label">Bay Items</div>
+  <table><thead><tr><th>Item</th><th>Import Price</th><th>Retail Price</th><th>Margin</th></tr></thead>
+  <tbody>${BAY_ITEMS.map(i=>row(i.id,i.name)).join('')}</tbody></table>
+  <div class="section-label">Materials</div>
+  <table><thead><tr><th>Material</th><th>Import Price</th><th>Retail Price</th><th>Margin</th></tr></thead>
+  <tbody>${MATERIALS.map(m=>row(m.id,m.name)).join('')}</tbody></table>
+  `;
+}
+
+/* ===================== RENDER: HISTORY ===================== */
+function renderHistory(){
+  if(state.runHistory.length===0) return `<h2 class="pagetitle">Run History</h2><div class="empty">No runs or crafts logged yet.</div>`;
+  return `
+  <h2 class="pagetitle">Run History</h2>
+  <p class="subtitle">Every completed truck run and craft, most recent first.</p>
+  <div class="btnrow"><button class="danger" id="clearHistory">Clear History</button></div>
+  ${state.runHistory.map(h=>`
+    <div class="log-entry ${h.type==='Craft'?'craft':''}">
+      <div class="log-meta">${new Date(h.ts).toLocaleString()} · ${h.employee} · ${h.type}${h.cost?' · '+money(h.cost):''}</div>
+      <div>${h.details}</div>
+    </div>`).join('')}
+  `;
+}
+
+/* ===================== RENDER: EMPLOYEES ===================== */
+function renderEmployees(){
+  return `
+  <h2 class="pagetitle">Employees</h2>
+  <p class="subtitle">Add everyone who works runs or crafts — used to attribute runs in the log.</p>
+  <div class="btnrow">
+    <input type="text" id="newEmp" placeholder="Employee name" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 12px;border-radius:7px;">
+    <button class="primary" id="addEmp">Add Employee</button>
+  </div>
+  <div style="margin-top:16px;">
+  ${state.employees.length? state.employees.map(e=>`<span class="employee-chip">${e}<button data-rm="${e}">✕</button></span>`).join('') : '<div class="empty">No employees added yet.</div>'}
+  </div>
+  `;
+}
+
+/* ===================== MAIN RENDER + EVENTS ===================== */
+function render(){
+  renderNav();
+  const main = document.getElementById('main');
+  if(activeTab==='dashboard') main.innerHTML = renderDashboard();
+  else if(activeTab==='run') main.innerHTML = renderRun();
+  else if(activeTab==='crafting') main.innerHTML = renderCrafting();
+  else if(activeTab==='pricing') main.innerHTML = renderPricing();
+  else if(activeTab==='history') main.innerHTML = renderHistory();
+  else if(activeTab==='employees') main.innerHTML = renderEmployees();
+  attachEvents();
+}
+
+function attachEvents(){
+  document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{ activeTab=b.dataset.tab; render(); }));
+
+  const empSel = document.getElementById('empSelect');
+  if(empSel) empSel.addEventListener('change', e=>{ state.currentEmployee = e.target.value; });
+
+  document.querySelectorAll('[data-bay]').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.bay;
+      const n = parseInt(e.target.dataset.baynum);
+      const inv = state.inventory[id];
+      inv.bays[n] = Math.max(0, parseInt(e.target.value)||0);
+      inv.qty = inv.bays.reduce((a,b)=>a+b,0);
+      await saveInventory();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-material]').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.material;
+      state.inventory[id].qty = Math.max(0, parseInt(e.target.value)||0);
+      await saveInventory();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-target]').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.target;
+      state.inventory[id].target = Math.max(0, parseInt(e.target.value)||0);
+      await saveInventory();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-import]').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      state.inventory[e.target.dataset.import].importPrice = parseFloat(e.target.value)||0;
+      await saveInventory(); render();
+    });
+  });
+
+  const resetInv = document.getElementById('resetInv');
+  if(resetInv) resetInv.addEventListener('click', async ()=>{
+    if(!confirm('Reset ALL bay stock and material counts to 0? This cannot be undone.')) return;
+    Object.keys(state.inventory).forEach(id=>{
+      state.inventory[id].qty = id==='mechanic_toolbox'?1:0;
+      if(state.inventory[id].bays) state.inventory[id].bays = [0,0,0,0];
+    });
+    await saveInventory(); render();
+  });
+
+  const capInput = document.getElementById('capInput');
+  if(capInput) capInput.addEventListener('change', async e=>{
+    state.truckCapacity = Math.max(1, parseInt(e.target.value)||210);
+    await saveTruckCapacity(); render();
+  });
+  const numRunsSelect = document.getElementById('numRunsSelect');
+  if(numRunsSelect) numRunsSelect.addEventListener('change', e=>{ state.numRunsToGenerate = parseInt(e.target.value)||1; });
+  const genRun = document.getElementById('genRun');
+  if(genRun) genRun.addEventListener('click', ()=>{ generateRun(state.numRunsToGenerate); render(); });
+  const completeRunBtn = document.getElementById('completeRun');
+  if(completeRunBtn) completeRunBtn.addEventListener('click', completeRuns);
+  const cancelRun = document.getElementById('cancelRun');
+  if(cancelRun) cancelRun.addEventListener('click', ()=>{ state.pendingRuns=null; render(); });
+
+  document.querySelectorAll('[data-craft]').forEach(b=>b.addEventListener('click', ()=>doCraft(b.dataset.craft)));
+
+  const clearHistory = document.getElementById('clearHistory');
+  if(clearHistory) clearHistory.addEventListener('click', async ()=>{
+    if(!confirm('Clear all run history?')) return;
+    state.runHistory = []; await saveRunHistory(); render();
+  });
+
+  const addEmp = document.getElementById('addEmp');
+  if(addEmp) addEmp.addEventListener('click', async ()=>{
+    const inp = document.getElementById('newEmp');
+    const name = inp.value.trim();
+    if(!name) return;
+    if(!state.employees.includes(name)) state.employees.push(name);
+    await saveEmployees(); render();
+  });
+  document.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click', async ()=>{
+    state.employees = state.employees.filter(e=>e!==b.dataset.rm);
+    await saveEmployees(); render();
+  }));
+}
+
+/* ===================== INIT ===================== */
+(async function init(){
+  initFirebase();
+  await loadAll();
+  render();
+  attachLiveListeners();
+})();
+</script>
+</body>
+</html>
